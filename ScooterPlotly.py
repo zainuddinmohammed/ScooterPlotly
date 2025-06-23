@@ -16,7 +16,9 @@ config = {
 
     'DEFAULT_AXES': True,
 
-    'xy_gridlines': False
+    'xy_gridlines': False,
+
+    'light': False,
 }
 
 x, y, z, t = symbols('x y z t')
@@ -103,7 +105,7 @@ def x_axis(color, name, step=None):
                 z=[0, 0],
                 mode="text+markers",
                 marker=dict(
-                    color='white',
+                    color=color,
                     size=3
                 ),
                 text=["", str(i * step)],
@@ -136,7 +138,7 @@ def x_axis(color, name, step=None):
                 z=[0, 0],
                 mode="text+markers",
                 marker=dict(
-                    color='white',
+                    color=color,
                     size=3
                 ),
                 text=["", str(-i * step)],
@@ -225,7 +227,7 @@ def y_axis(color, name, step=None):
                 z=[0, 0],
                 mode="text+markers",
                 marker=dict(
-                    color='white',
+                    color=color,
                     size=3
                 ),
                 text=["", str(i * step)],
@@ -258,7 +260,7 @@ def y_axis(color, name, step=None):
                 z=[0, 0],
                 mode="text+markers",
                 marker=dict(
-                    color='white',
+                    color=color,
                     size=3
                 ),
                 text=["", str(-i * step)],
@@ -339,7 +341,7 @@ def z_axis(color, name, step=None):
                 z=[0, i*step],
                 mode="text+markers",
                 marker=dict(
-                    color='white',
+                    color=color,
                     size=3
                 ),
                 text=["", str(i*step)],
@@ -360,7 +362,7 @@ def z_axis(color, name, step=None):
                 z=[0, -i*step],
                 mode="text+markers",
                 marker=dict(
-                    color='white',
+                    color=color,
                     size=3
                 ),
                 text=["", str(-i*step)],
@@ -379,16 +381,19 @@ def z_axis(color, name, step=None):
     return [line, cone1, cone2] + tickList
 
 
-def axes(step=None, xy=False):
+def axes(color='white', step=None, xy=False, x=True, y=True, z=True):
     if xy:
         config['xy_gridlines'] = True
     else:
         config['xy_gridlines'] = False
-    return [
-        x_axis('white', 'x', step=step),
-        y_axis('white', 'y', step=step),
-        z_axis('white', 'z', step=step),
-    ]
+    ret = []
+    if x:
+        ret.append(x_axis(color, 'x', step=step))
+    if y:
+        ret.append(y_axis(color, 'y', step=step))
+    if z:
+        ret.append(z_axis(color, 'z', step=step))
+    return ret
 
 
 # VECTOR FUNCTIONS
@@ -464,7 +469,7 @@ def Vector(p1, p2, color, name, legend=True):
 
 
 # Models a vector appended to another vector
-def AppendedVector(p1, p2, color, name, legend=True):
+def AppendedVector(p1, p2, color='red', name='', legend=True):
     line = go.Scatter3d(
         x=[p1[0], p1[0] + p2[0]],
         y=[p1[1], p1[1] + p2[1]],
@@ -497,7 +502,6 @@ def AppendedVector(p1, p2, color, name, legend=True):
     )
     return [line, cone]
 
-
 # Returns a unit vector
 def Uvec(v):
     mag = np.linalg.norm(v)
@@ -525,7 +529,7 @@ def Point(p, color='red', name=''):
 
 
 # Returns a list of vectors that map the x-y-z directions from the origin to the specified point as well as the point
-def PointVectors(p, color, name):
+def PointVectors(p, color='red', name=''):
     return [
         Point(p, color, name),
         PositionVector(np.array([p[0], 0, 0]), color, '', legend=False),
@@ -587,7 +591,7 @@ def model3DCartesFunction(f_expr, grid_size=70):
     )
 
 
-def model3DParamFunction(x_expr, y_expr, z_expr, color='red', name='', t_min=0, t_max=100, samples=200):
+def model3DParamFunction(x_expr, y_expr, z_expr, color='red', name='', t_min=0.0, t_max=100.0, samples=200):
     # Lambdify the expressions
     x_func = lambdify(t, x_expr, modules='numpy')
     y_func = lambdify(t, y_expr, modules='numpy')
@@ -777,12 +781,17 @@ def breakdown(models):
 
 
 # LAYOUT SETTINGS
-def GridSpace(m, M, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, default_axes=True):
+def GridSpace(m, M, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, default_axes=True, light_mode=False):
 
     if default_axes:
         config['DEFAULT_AXES'] = True
     else:
         config['DEFAULT_AXES'] = False
+
+    if light_mode:
+        config['light'] = True
+    else:
+        config['light'] = False
 
     if xmin is None:
         xmin = m
@@ -804,50 +813,49 @@ def GridSpace(m, M, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=
     config['MINZ'], config['MAXZ'] = zmin, zmax
 
 
-def CreateFigure(data, title):
+def CreateFigure(data, title, filename='plot.html'):
     fig = go.Figure(data=breakdown(data), layout=go.Layout(
         width=1690,
         height=880,
         scene=dict(
             xaxis=dict(
-                range=[config['MINX'], config['MAXX']],
+                range=[config['MINX']-1, config['MAXX']+1],
                 showgrid=True if config['DEFAULT_AXES'] else False,
                 showticklabels=True if config['DEFAULT_AXES'] else False,
                 title='x' if config['DEFAULT_AXES'] else '',
-                backgroundcolor='black',
+                backgroundcolor='#FFFCF2' if config['light'] else 'black',
                 gridcolor='#262626',
-                zerolinecolor='#c9c9c9' if config['DEFAULT_AXES'] else 'black',
-                color='white'
+                zerolinecolor='#c9c9c9' if config['DEFAULT_AXES'] else ('#FFFCF2' if config['light'] else 'black'),
+                color='black' if config['light'] else 'white',
             ),
             yaxis=dict(
-                range=[config['MINY'], config['MAXY']],
+                range=[config['MINY']-1, config['MAXY']+1],
                 showgrid=True if config['DEFAULT_AXES'] else False,
                 showticklabels=True if config['DEFAULT_AXES'] else False,
                 title='y' if config['DEFAULT_AXES'] else '',
-                backgroundcolor='black',
+                backgroundcolor='#FFFCF2' if config['light'] else 'black',
                 gridcolor='#262626',
-                zerolinecolor='#c9c9c9' if config['DEFAULT_AXES'] else 'black',
-                color='white'
+                zerolinecolor='#c9c9c9' if config['DEFAULT_AXES'] else ('#FFFCF2' if config['light'] else 'black'),
+                color='black' if config['light'] else 'white',
             ),
             zaxis=dict(
-                range=[config['MINZ'], config['MAXZ']],
+                range=[config['MINZ']-1, config['MAXZ']+1],
                 showgrid=True if config['DEFAULT_AXES'] else False,
                 showticklabels=True if config['DEFAULT_AXES'] else False,
                 title='z' if config['DEFAULT_AXES'] else '',
-                backgroundcolor='black',
+                backgroundcolor='#FFFCF2' if config['light'] else 'black',
                 gridcolor='#262626',
-                zerolinecolor='#c9c9c9' if config['DEFAULT_AXES'] else 'black',
-                color='white'
+                zerolinecolor='#c9c9c9' if config['DEFAULT_AXES'] else ('#FFFCF2' if config['light'] else 'black'),
+                color='black' if config['light'] else 'white',
             ),
             aspectmode='cube'
         ),
-        paper_bgcolor='black',
+        paper_bgcolor='#FFFCF2' if config['light'] else 'black',
         font=dict(family='Arial', color='white'),
         title=title,
         margin=dict(l=0, r=0, t=50, b=0),
     ))
 
-    filename = "plot.html"
     fig.write_html(filename)
 
     webbrowser.open('file://' + os.path.realpath(filename))
